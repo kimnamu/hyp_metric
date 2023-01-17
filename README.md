@@ -53,7 +53,7 @@ python -m train --ds Inshop --model deit_small_distilled_patch16_224 --lr 3e-5 -
 ```
 pip install torch==1.7.1+cu110 torchvision==0.8.2+cu110 torchaudio==0.7.2 -f https://download.pytorch.org/whl/torch_stable.html
 
-git clone https://github.com/NVIDIA/apex
+git clone --branch 22.04-dev --single-branch https://github.com/NVIDIA/apex
 
 pip install -v --disable-pip-version-check --no-cache-dir --global-option="--cpp_ext" --global-option="--cuda_ext" ./apex
 
