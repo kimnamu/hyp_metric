@@ -24,6 +24,12 @@ from proxy_anchor.dataset.Inshop import Inshop_Dataset
 from hyptorch.pmath import dist_matrix
 from model import init_model
 
+if torch.cuda.is_available():
+    device = "cuda"
+elif torch.backends.mps.is_available():
+    device = torch.device("mps")
+else:
+    device = "cpu"
 
 # flake8: noqa: E501
 class Config(Tap):
@@ -45,7 +51,7 @@ class Config(Tap):
     resize: int = 224  # image resize
     crop: int = 224  # center crop after resize
     local_rank: int = 0  # set automatically for distributed training
-
+    weight: str = ""  # model name from timm or torch.hub, i.e. deit_small_distilled_patch16_224, 
 
 def contrastive_loss(x0, x1, tau, hyp_c):
     # x0 and x1 - positive pair
@@ -115,7 +121,12 @@ if __name__ == "__main__":
         drop_last=True,
     )
 
-    model = init_model(cfg)
+    model = init_model(cfg)    
+    if len(cfg.weight) != 0:
+        print("loading weight")
+        model.load_state_dict(torch.load(cfg.weight, map_location=device))
+        print("loading weight is succeed!!")
+
     optimizer = optim.AdamW(model.parameters(), lr=cfg.lr)
     model, optimizer = amp.initialize(model, optimizer, opt_level="O2")
     if world_size > 1:
@@ -174,6 +185,10 @@ if __name__ == "__main__":
             if (ep + 1) in eval_ep:
                 stats_ep = {"recall": rh, "recall_b": rb, **stats_ep}
             wandb.log({**stats_ep, "ep": ep})
+
+    PATH = "./weights/1/"
+    os.makedirs(PATH, exist_ok=True)
+    torch.save(model.state_dict(), PATH+"weights.pt")
 
     if cfg.save_emb:
         ds_type = "gallery" if cfg.ds == "Inshop" else "eval"
